@@ -1327,3 +1327,4 @@ if game.GameId == 847722000 then
     -- 加载保存的配置
     Rayfield:LoadConfiguration()
 end
+
