@@ -1,0 +1,1329 @@
+﻿---@diagnostic disable: undefined-global
+-- 仅在指定游戏（GameId=847722000）中运行
+if game.GameId == 847722000 then
+    -- 若已加载GUI则直接返回，避免重复加载
+    if getgenv().TheRakeScript then
+        return
+    end
+
+    -- 获取克隆后的服务（兼容部分注入工具）
+    local function 获取克隆服务(服务名称)
+        local 服务获取函数 = game.GetService
+        local 引用处理函数 = cloneref or function(引用) return 引用 end
+        return 引用处理函数(服务获取函数(game, 服务名称))
+    end
+
+    -- 根据注入工具类型发送通知
+    if syn then
+        获取克隆服务("StarterGui"):SetCore("SendNotification", {
+            Title = "信息",
+            Text = "你正在使用Synapse X注入工具！the rake脚本100%可正常运行",
+            Duration = 5
+        })
+    else
+        获取克隆服务("StarterGui"):SetCore("SendNotification", {
+            Title = "信息",
+            Text = "你未使用Synapse X注入工具，the rake脚本可能无法正常运行",
+            Duration = 5
+        })
+    end
+
+    -- 本地玩家信息存储
+    local 本地玩家信息 = {
+        本地玩家 = 获取克隆服务("Players").LocalPlayer,
+        角色模型 = 获取克隆服务("Players").LocalPlayer.Character,
+    }
+
+    local 允许运行服务 = true
+
+    -- 隐藏用部件（用于"隐藏"功能）
+    local 隐藏部件 = Instance.new("Part")
+    隐藏部件.Size = Vector3.new(20, 1000, 20)
+    隐藏部件.Parent = 获取克隆服务("Workspace")
+    隐藏部件.Position = Vector3.new(0, 10000, 0)
+    隐藏部件.Anchored = true
+
+    -- 隐藏部件高亮效果
+    local 隐藏部件高亮 = Instance.new("Highlight")
+    隐藏部件高亮.Name = "HidePartHightLight"
+    隐藏部件高亮.FillColor = Color3.new(255, 255, 255)
+    隐藏部件高亮.OutlineColor = Color3.new(170, 0, 0)
+    隐藏部件高亮.FillTransparency = 0.8
+    隐藏部件高亮.OutlineTransparency = 0.8
+    隐藏部件高亮.Parent = 隐藏部件
+
+    -- 获取角色人形对象（Humanoid）
+    local function 获取人形对象()
+        if 获取克隆服务("Players").LocalPlayer and 获取克隆服务("Players").LocalPlayer.Character and 获取克隆服务("Players").LocalPlayer.Character:FindFirstChildOfClass("Humanoid") then
+            return 获取克隆服务("Players").LocalPlayer.Character:FindFirstChildOfClass("Humanoid")
+        else
+            return false
+        end
+    end
+
+    -- 获取角色根部件（HumanoidRootPart）
+    local function 获取根部件()
+        if not 获取克隆服务("Players").LocalPlayer.Character then
+        else
+            if 获取克隆服务("Players").LocalPlayer.Character:FindFirstChild("HumanoidRootPart") then
+                return 获取克隆服务("Players").LocalPlayer.Character:FindFirstChild("HumanoidRootPart")
+            end
+        end
+        return nil
+    end
+
+    -- 设置根部件位置（CFrame）
+    local function 设置根部件位置(目标位置 : CFrame)
+        获取根部件().CFrame = 目标位置	
+    end
+
+    -- 打开安全屋门
+    local function 打开安全屋门()
+        for i = 1, 1 do
+            local 原位置 = 获取克隆服务("Players").LocalPlayer.Character:WaitForChild("HumanoidRootPart").CFrame
+            设置根部件位置(获取克隆服务("Workspace").Map.SafeHouse.Door.Door.CFrame + Vector3.new(0, -7, 0))
+            wait()
+            获取根部件().Anchored = true
+            wait(0.4)
+            local 门指令 = "Door"
+            workspace.Map.SafeHouse.Door.RemoteEvent:FireServer(门指令)
+            wait(0.4)
+            设置根部件位置(原位置)
+            wait()
+            获取根部件().Anchored = false
+            wait(0.4)
+        end
+    end
+
+    -- 鼠标指向传送（带缓动效果）
+    local function 鼠标指向传送()
+        local 鼠标 = 获取克隆服务("Players").LocalPlayer:GetMouse()
+        local 缓动服务 = 获取克隆服务("TweenService")
+        local 缓动信息 = TweenInfo.new(1, Enum.EasingStyle.Linear, Enum.EasingDirection.In, 0, false, 0)
+        local 根部件 = 获取克隆服务("Players").LocalPlayer.Character:WaitForChild("HumanoidRootPart")
+        local 目标属性 = {CFrame = CFrame.new(鼠标.Hit.Position)}
+        local 缓动动画 = 缓动服务:Create(根部件, 缓动信息, 目标属性)
+        缓动动画:Play()
+    end
+
+    -- 打开补给箱
+    local function 打开补给箱()
+        local 打开指令 = "Open"
+        local 确认参数 = true
+        获取克隆服务("ReplicatedStorage").SupplyClientEvent:FireServer(打开指令, 确认参数)
+    end
+
+    -- AI自动寻路到指定位置
+    local function AI自动寻路(目标位置 : Vector3)
+        local 寻路服务 = 获取克隆服务("PathfindingService"):CreatePath()
+        寻路服务:ComputeAsync(获取克隆服务("Players").LocalPlayer.Character:WaitForChild("HumanoidRootPart").Position, 目标位置)
+        local 路径点 = 寻路服务:GetWaypoints()
+        for i, 路径点信息 in pairs(路径点) do
+            获取人形对象():MoveTo(路径点信息.Position)
+        end
+    end
+
+    -- 恢复发电站电力
+    local function 恢复发电站电力()
+        local 原位置 = 获取克隆服务("Players").LocalPlayer.Character:WaitForChild("HumanoidRootPart").CFrame
+        wait()
+        for i = 1, 1000 do
+            设置根部件位置(CFrame.new(-280.808014, 20.3924561, -212.159821, -0.10549771, -1.16743761e-08, -0.994419575, 9.45945828e-08, 1, -2.17754046e-08, 0.994419575, -9.63639621e-08, -0.10549771))
+        end
+        获取根部件().Anchored = true
+        wait()
+        local 启动指令 = "StationStart"
+        workspace.Map.PowerStation.StationFolder.RemoteEvent:FireServer(启动指令)
+        wait(20)
+        获取根部件().Anchored = false
+    end
+
+    -- 空投高亮效果（启用/禁用）
+    local function 空投高亮(模式)
+        if tostring(模式) == "Enable" then
+            if 获取克隆服务("Workspace").Debris.SupplyCrates:FindFirstChild("Box") then
+                if 获取克隆服务("Workspace").Debris.SupplyCrates.Box:FindFirstChild("SleepyDropChams") then
+                else
+                    local 高亮效果 = Instance.new("Highlight")
+                    高亮效果.FillColor = Color3.new(0.317647, 1, 0)
+                    高亮效果.OutlineColor = Color3.new(0, 1, 0.250980)
+                    高亮效果.Parent = 获取克隆服务("Workspace").Debris.SupplyCrates.Box
+                    高亮效果.Adornee = 获取克隆服务("Workspace").Debris.SupplyCrates.Box
+                    高亮效果.DepthMode = Enum.HighlightDepthMode.AlwaysOnTop
+                    高亮效果.OutlineTransparency = 0
+                    高亮效果.FillTransparency = 1
+                    高亮效果.Name = "SleepyDropChams"
+                end
+            end
+        elseif tostring(模式) == "Disable" then
+            for i, 子对象 in pairs(获取克隆服务("Workspace").Debris.SupplyCrates:GetDescendants()) do
+                if 子对象.Name == "SleepyDropChams" then
+                    子对象:Remove()
+                end
+            end		
+        end
+    end
+
+    -- Rake怪物高亮效果
+    local function Rake高亮()
+        if 获取克隆服务("Workspace"):FindFirstChild("Rake") then
+            if 获取克隆服务("Workspace").Rake:FindFirstChild("SleepyRakeChams") then
+            else
+                local 高亮效果 = Instance.new("Highlight")
+                高亮效果.FillColor = Color3.new(170, 0, 0)
+                高亮效果.OutlineColor = Color3.new(255, 255, 255)
+                高亮效果.Parent = 获取克隆服务("Workspace").Rake
+                高亮效果.Adornee = 获取克隆服务("Workspace").Rake
+                高亮效果.DepthMode = Enum.HighlightDepthMode.AlwaysOnTop
+                高亮效果.OutlineTransparency = 0.9
+                高亮效果.FillTransparency = 0.5
+                高亮效果.Name = "SleepyRakeChams"
+            end
+        end
+    end
+
+    -- 禁用Rake怪物高亮效果
+    local function 禁用Rake高亮()
+        if 获取克隆服务("Workspace"):FindFirstChild("Rake") then
+            for i, 子对象 in pairs(获取克隆服务("Workspace"):FindFirstChild("Rake"):GetDescendants()) do
+                if 子对象.Name == "SleepyRakeChams" then
+                    子对象:Destroy()
+                end
+            end
+        end
+    end
+
+    -- 获取核心服务
+    local 运行服务 = 获取克隆服务("RunService")
+    local 输入服务 = 获取克隆服务("UserInputService")
+
+    -- 自由视角部件（用于FreeCam功能）
+    local 自由视角部件 = Instance.new("Part")
+    自由视角部件.Anchored = true
+    自由视角部件.Size = Vector3.new(1, 1, 1)
+    自由视角部件.Parent = 获取克隆服务("Workspace")
+    自由视角部件.CFrame = CFrame.new(0, 10000, 0)
+    自由视角部件.Transparency = 1
+    自由视角部件.Name = "FreeCamPart"
+
+    -- 标记the rake脚本已加载
+    pcall(function() getgenv().TheRakeScript = true end)
+
+    -- 加载Rayfield GUI库（用于创建界面）
+    local Rayfield = loadstring(game:HttpGet('https://raw.githubusercontent.com/ltseverydayyou/Rayfield-backup/main/Rayfield'))()
+
+    -- 创建主窗口
+    local 主窗口 = Rayfield:CreateWindow({
+        Name = "the rake脚本",
+        LoadingTitle = "the rake脚本",
+        LoadingSubtitle = "Sleepy 辅助面板",
+        ConfigurationSaving = {
+            Enabled = true,
+            FolderName = "TheRakeScript",
+            FileName = "TheRakeScriptConfig"
+        }
+    })
+
+    -- 创建标签页（Player/Client/Exploits/Settings）
+    local 玩家标签页 = 主窗口:CreateTab("玩家", 11252440515)
+    local 客户端标签页 = 主窗口:CreateTab("客户端", 4483345998)
+    local 功能标签页 = 主窗口:CreateTab("功能", 11252440817)
+    local 设置标签页 = 主窗口:CreateTab("设置", 11252440305)
+
+    -- ------------------------------ 客户端标签页功能 ------------------------------
+    -- 自由视角开关
+    客户端标签页:CreateToggle({
+        Name = "自由视角（FreeCam）",
+        CurrentValue = false,
+        Flag = "freeCam",
+        Callback = function(状态)
+            _G.自由视角启用 = 状态
+            if _G.自由视角启用 == true then
+                pcall(function()
+                    自由视角部件.CFrame = 获取克隆服务("Players").LocalPlayer.Character.Head.CFrame
+                end)
+                -- 循环执行自由视角逻辑，直到关闭
+                repeat wait()
+                    pcall(function()
+                        -- 部件缓动函数
+                        function 部件缓动(时长, 目标部件, 目标位置)
+                            local 缓动服务 = 获取克隆服务("TweenService")
+                            local 缓动信息 = TweenInfo.new(时长, Enum.EasingStyle.Linear, Enum.EasingDirection.InOut, 0, false, 0)
+                            local 部件 = 目标部件
+                            local 目标属性 = {}
+                            目标属性.CFrame = 目标位置
+                            local 缓动动画 = 缓动服务:Create(部件, 缓动信息, 目标属性)
+                            缓动动画:Play()
+                        end
+
+                        -- 设置相机为脚本控制模式
+                        获取克隆服务("Workspace").CurrentCamera.CameraType = Enum.CameraType.Scriptable
+                        local 鼠标 = 获取克隆服务("Players").LocalPlayer:GetMouse()
+                        获取克隆服务("Players").LocalPlayer.Character:WaitForChild("HumanoidRootPart").Anchored = true
+                        获取克隆服务("Workspace").CurrentCamera.CameraSubject = 自由视角部件
+                        自由视角部件.CFrame = CFrame.new(自由视角部件.Position, 鼠标.Hit.Position)
+
+                        -- 自由视角移动控制（空格=上升，左Shift=下降）
+                        if 输入服务:IsKeyDown(Enum.KeyCode.Space) then
+                            部件缓动(0.04, 自由视角部件, 自由视角部件.CFrame + Vector3.new(0, _G.自由视角速度, 0))
+                        elseif 输入服务:IsKeyDown(Enum.KeyCode.LeftShift) then
+                            部件缓动(0.04, 自由视角部件, 自由视角部件.CFrame + Vector3.new(0, -_G.自由视角速度, 0))
+                        end
+
+                        -- 自由视角前后移动（W=前，S=后）
+                        if true then
+                            if 输入服务:IsKeyDown(Enum.KeyCode.W) then
+                                部件缓动(0.04, 自由视角部件, 自由视角部件.CFrame + 自由视角部件.CFrame.LookVector * _G.自由视角速度)
+                            elseif 输入服务:IsKeyDown(Enum.KeyCode.S) then
+                                部件缓动(0.04, 自由视角部件, 自由视角部件.CFrame + 自由视角部件.CFrame.LookVector * -_G.自由视角速度)
+                            end
+                        end
+                    end)
+                until _G.自由视角启用 == false
+
+                -- 关闭自由视角后恢复默认相机
+                pcall(function()
+                    获取克隆服务("Players").LocalPlayer.Character.HumanoidRootPart.Anchored = false
+                    获取克隆服务("Workspace").CurrentCamera.CameraType = Enum.CameraType.Custom
+                    获取克隆服务("Workspace").CurrentCamera.CameraSubject = 获取克隆服务("Players").LocalPlayer.Character.Head
+                end)
+            end
+        end,
+    })
+
+    -- 自由视角速度调节滑块
+    客户端标签页:CreateSlider({
+        Name = "自由视角速度",
+        Range = {0.01, 20},
+        Increment = 0.01,
+        CurrentValue = 0.2,
+        Flag = "Speed",
+        Callback = function(数值)
+            _G.自由视角速度 = 数值
+        end,
+    })
+
+    -- 无雾效果开关
+    客户端标签页:CreateToggle({
+        Name = "无雾（No Fog）",
+        CurrentValue = false,
+        Flag = "NoFog",
+        Callback = function(状态)
+            _G.无雾启用 = 状态
+            if 状态 == false then
+                获取克隆服务("ReplicatedStorage").CurrentLightingProperties.FogEnd.Value = 75
+            end
+        end,
+    })
+
+    -- 无雾效果实时生效（心跳循环）
+    获取克隆服务("RunService").Heartbeat:Connect(function()
+        if 允许运行服务 == true then
+            if _G.无雾启用 == true then
+                获取克隆服务("ReplicatedStorage").CurrentLightingProperties.FogEnd.Value = 9e9
+            end
+        end
+    end)
+
+    -- 第三人称切换按钮
+    客户端标签页:CreateButton({
+        Name = "切换第三人称",
+        Callback = function()
+            获取克隆服务("Players").LocalPlayer.Character.RagdollTime.RagdollSwitch.Value = true
+            获取克隆服务("Players").LocalPlayer.Character.RagdollTime.RagdollSwitch.Value = false
+        end,
+    })
+
+    -- ------------------------------ 玩家标签页功能 ------------------------------
+    -- 无限耐力开关
+    玩家标签页:CreateToggle({
+        Name = "无限耐力（Inf Stamina）",
+        CurrentValue = false,
+        Flag = "InfStamina",
+        Callback = function(状态)
+            _G.无限耐力启用 = 状态
+            if _G.无限耐力启用 == true then
+                -- 遍历全局变量，修改耐力相关参数
+                for i, 变量 in pairs(getgc(true)) do
+                    if type(变量) == "table" then
+                        if rawget(变量, "STAMINA_REGEN") then
+                            变量.STAMINA_REGEN = 100  -- 耐力恢复速度
+                            变量.JUMP_STAMINA = 0     -- 跳跃消耗耐力
+                            变量.JUMP_COOLDOWN = 0    -- 跳跃冷却
+                            变量.STAMINA_TAKE = 0     -- 移动消耗耐力
+                            变量.stamina = 100        -- 当前耐力值
+                        end
+                    end
+                end
+            end
+        end,
+    })
+
+    -- 无限夜视仪开关
+    玩家标签页:CreateToggle({
+        Name = "无限夜视仪（Inf Night Vision）",
+        CurrentValue = false,
+        Flag = "InfNightVision",
+        Callback = function(状态)
+            _G.无限夜视仪启用 = 状态
+            if _G.无限夜视仪启用 == true then
+                -- 遍历全局变量，修改夜视仪相关参数
+                for i, 变量 in pairs(getgc(true)) do
+                    if type(变量) == "table" then
+                        if rawget(变量, "NVG_TAKE") then
+                            变量.NVG_TAKE = 0    -- 夜视仪消耗
+                            变量.NVG_REGEN = 100 -- 夜视仪恢复
+                        end
+                    end
+                end                
+            end
+        end,
+    })
+
+    -- 无坠落伤害开关
+    玩家标签页:CreateToggle({
+        Name = "无坠落伤害（No Fall Damage）",
+        CurrentValue = false,
+        Flag = "NoFallDamage",
+        Callback = function(状态)
+            _G.无坠落伤害启用 = 状态
+        end,
+    })
+
+    -- 视野范围（FOV）调节滑块
+    玩家标签页:CreateSlider({
+        Name = "视野范围（FOV）",
+        Range = {0, 120},
+        Increment = 1,
+        CurrentValue = 70,
+        Flag = "FOV",
+        Callback = function(数值)
+            _G.目标视野范围 = 数值
+        end,
+    })
+
+    -- 视野范围开关
+    玩家标签页:CreateToggle({
+        Name = "启用自定义视野（Toggle FOV）",
+        CurrentValue = false,
+        Flag = "tglFOV",
+        Callback = function(状态)
+            _G.启用自定义视野 = 状态
+        end,
+    })
+
+    -- 移动速度调节滑块
+    玩家标签页:CreateSlider({
+        Name = "移动速度（WalkSpeed）",
+        Range = {0, 30},
+        Increment = 1,
+        CurrentValue = 16,
+        Flag = "walkspeed",
+        Callback = function(数值)
+            _G.目标移动速度 = 数值
+        end,
+    })
+
+    -- 移动速度开关
+    玩家标签页:CreateToggle({
+        Name = "启用自定义速度（Toggle WalkSpeed）",
+        CurrentValue = false,
+        Flag = "tglSpeed",
+        Callback = function(状态)
+            _G.启用自定义速度 = 状态
+        end,
+    })
+
+    -- ------------------------------ 功能标签页功能 ------------------------------
+    -- Rake自动攻击（Killaura）开关
+    local Rake自动攻击开关 = 功能标签页:CreateToggle({
+        Name = "Rake自动攻击（Killaura）",
+        CurrentValue = false,
+        Flag = "RakeAura",
+        Callback = function(状态)
+            _G.Rake自动攻击启用 = 状态
+            -- 发送通知提示状态
+            Rayfield:Notify({
+                Title = "Rake自动攻击",
+                Content = "Rake自动攻击 : " .. tostring(_G.Rake自动攻击启用),
+                Duration = 1,
+                Image = 4483362458,
+            })
+
+            if _G.Rake自动攻击启用 == true then
+                -- 循环执行自动攻击逻辑，直到关闭
+                repeat wait()
+                    pcall(function()
+                        for i, 子对象 in pairs(获取克隆服务("Workspace"):GetChildren()) do
+                            if 获取克隆服务("Workspace"):FindFirstChild("Rake") then
+                                -- 当Rake在200单位范围内时触发攻击
+                                if (获取克隆服务("Workspace").Rake.HumanoidRootPart.Position - 获取克隆服务("Players").LocalPlayer.Character.HumanoidRootPart.Position).Magnitude < 200 then
+                                    获取克隆服务("Players").LocalPlayer.Character.StunStick.Event:FireServer("S")
+                                    wait()
+                                    获取克隆服务("Players").LocalPlayer.Character.StunStick.Event:FireServer("H", workspace.Rake.HumanoidRootPart)	
+                                end
+                            end
+                        end
+                        wait(0.1)
+                    end)
+                until _G.Rake自动攻击启用 == false
+            end
+        end,
+    })
+
+    -- Rake自动攻击命中位置修正（心跳循环）
+    获取克隆服务("RunService").Heartbeat:Connect(function()
+        if 允许运行服务 == true then
+            if _G.Rake自动攻击启用 == true then
+                pcall(function()
+                    if 获取克隆服务("Workspace"):FindFirstChild("Rake") then
+                        获取克隆服务("Players").LocalPlayer.Character.StunStick.HitPart.Position = 获取克隆服务("Workspace"):FindFirstChild("Rake").HumanoidRootPart.Position
+                    end
+                end)
+            end
+        end
+    end)
+
+    -- Rake自动攻击快捷键绑定（默认R键）
+    功能标签页:CreateKeybind({
+        Name = "切换自动攻击（Toggle Killaura）",
+        CurrentKeybind = "R",
+        HoldToInteract = false,
+        Flag = "KillAuraKeybind",
+        Callback = function(状态)
+            if _G.Rake自动攻击启用 == true then
+                Rake自动攻击开关:Set(false)
+            elseif _G.Rake自动攻击启用 == false then
+                Rake自动攻击开关:Set(true)
+            end
+        end,
+    })
+
+    -- 召唤所有碎片到身边
+    功能标签页:CreateButton({
+        Name = "召唤碎片（Bring Scraps）",
+        Callback = function()
+            for i, 子对象 in pairs(获取克隆服务("Workspace").Filter.ScrapSpawns:GetDescendants()) do
+                if 子对象.Name:lower() == "scrap" then
+                    子对象:PivotTo(获取克隆服务("Players").LocalPlayer.Character:GetPivot())
+                end
+            end
+        end,
+    })
+
+    -- 移除隐形墙
+    功能标签页:CreateButton({
+        Name = "移除隐形墙（Remove Invis Walls）",
+        Callback = function()
+            for i, 子对象 in pairs(获取克隆服务("Workspace").Filter.InvisibleWalls:GetChildren()) do
+                if 子对象.Name:lower() == "invisiblewall" or 子对象.Name:lower() == "invis" then
+                    子对象:Remove()
+                end
+            end
+        end,
+    })
+
+    -- 隐藏自身（进入地下）
+    功能标签页:CreateToggle({
+        Name = "隐藏自身（Hide）",
+        CurrentValue = false,
+        Flag = "Hide",
+        Callback = function(状态)
+            if 状态 == true then
+                if 获取根部件() ~= nil then
+                    获取根部件().Anchored = false
+                    -- 上下抖动后下沉到地下
+                    for i = 1, 10 do
+                        local 原Y坐标 = 获取根部件().Position.Y
+                        获取根部件().CFrame = CFrame.new(获取根部件().Position) + Vector3.new(0, 5, 0)
+                        wait()
+                        获取根部件().CFrame = CFrame.new(获取克隆服务("Players").LocalPlayer.Character.HumanoidRootPart.Position) + Vector3.new(0, -5, 0)
+                    end
+                    获取根部件().CFrame = CFrame.new(获取克隆服务("Players").LocalPlayer.Character.HumanoidRootPart.Position) + Vector3.new(0, -15, 0)
+                    wait()
+                    获取根部件().Anchored = true
+                    隐藏部件.Position = 获取克隆服务("Players").LocalPlayer.Character.HumanoidRootPart.Position + Vector3.new(0, -505, 0)
+                    隐藏部件高亮.Adornee = 隐藏部件	
+                    隐藏部件高亮.Parent = 隐藏部件	
+                end
+            elseif 状态 == false then
+                if 获取根部件() ~= nil then
+                    获取根部件().Anchored = false
+                    -- 上下抖动后回到地面
+                    for i = 1, 10 do
+                        local 原Y坐标 = 获取根部件().Position.Y
+                        获取根部件().CFrame = CFrame.new(获取克隆服务("Players").LocalPlayer.Character.HumanoidRootPart.Position) + Vector3.new(0, 5, 0)
+                        wait()
+                        获取根部件().CFrame = CFrame.new(获取克隆服务("Players").LocalPlayer.Character.HumanoidRootPart.Position) + Vector3.new(0, -5, 0)
+                    end
+                    获取根部件().CFrame = CFrame.new(获取克隆服务("Players").LocalPlayer.Character.HumanoidRootPart.Position) + Vector3.new(0, 15, 0)
+                    wait()
+                    获取根部件().Anchored = false
+                    隐藏部件高亮.Adornee = nil	
+                    隐藏部件高亮.Parent = nil		 
+                end	
+            end
+        end,
+    })
+
+    -- 补给箱秒开
+    功能标签页:CreateToggle({
+        Name = "补给箱秒开（Insta Open SupplyDrop）",
+        CurrentValue = false,
+        Flag = "InstaOpenSupplyDrop",
+        Callback = function(状态)
+            _G.补给箱秒开启用 = 状态
+        end,
+    })
+
+    -- 补给箱秒开实时生效（心跳循环）
+    获取克隆服务("RunService").Heartbeat:Connect(function()
+        if 允许运行服务 == true then
+            if _G.补给箱秒开启用 == true then
+                pcall(function()
+                    -- 禁用补给箱交互提示属性，直接设置解锁进度为100%
+                    for i, 属性 in pairs(获取克隆服务("Workspace").Debris.SupplyCrates.Box.GUIPart.ProximityPrompt:GetAttributes()) do
+                        获取克隆服务("Workspace").Debris.SupplyCrates.Box.GUIPart.ProximityPrompt:SetAttribute(tostring(i), false)
+                    end
+                    获取克隆服务("Workspace").Debris.SupplyCrates.Box.UnlockValue.Value = 100
+                end)
+            end
+        end
+    end)
+
+    -- ------------------------------ 客户端标签页（ESP相关） ------------------------------
+    -- Rake高亮ESP开关
+    客户端标签页:CreateToggle({
+        Name = "Rake高亮ESP（Rake Chams）",
+        CurrentValue = false,
+        Flag = "RakeChams",
+        Callback = function(状态)
+            _G.Rake高亮ESP启用 = 状态
+            -- 初始化Rake的ESP属性
+            for i, 子对象 in pairs(获取克隆服务("Workspace"):GetChildren()) do
+                if 子对象.Name == "Rake" then
+                    子对象:SetAttribute("hasESP", false)
+                end
+            end
+
+            if _G.Rake高亮ESP启用 == true then
+                repeat wait()
+                until _G.Rake高亮ESP启用 == false
+            elseif _G.Rake高亮ESP启用 == false then
+                -- 关闭时移除Rake的高亮效果
+                if 获取克隆服务("Workspace"):FindFirstChild("Rake") then
+                    if 获取克隆服务("Workspace"):FindFirstChild("Rake"):FindFirstChild("RakeChams") then
+                        获取克隆服务("Workspace"):FindFirstChild("Rake"):FindFirstChild("RakeChams"):Remove()
+                    end
+                end
+            end
+        end,
+    })
+
+    -- 玩家ESP开关
+    客户端标签页:CreateToggle({
+        Name = "玩家ESP（Player ESP）",
+        CurrentValue = false,
+        Flag = "PlrEsp",
+        Callback = function(状态)
+            _G.玩家ESP启用 = 状态
+            if _G.玩家ESP启用 == true then
+                repeat wait()
+                until _G.玩家ESP启用 == false
+                -- 关闭时清除所有玩家的ESP效果
+                for i, 玩家 in pairs(获取克隆服务("Players"):GetPlayers()) do
+                    pcall(function()
+                        if not 玩家.Character then
+                        else
+                            if 玩家.Character:GetAttribute("PlayerESP") == true then
+                                玩家.Character:SetAttribute("PlayerESP", false)
+                            end
+                            if 玩家.Character:FindFirstChild("PlayerChams") then
+                                玩家.Character.PlayerChams:Remove()
+                            end
+                        end
+                    end)
+                end
+            end
+        end,
+    })
+
+    -- 显示玩家移动距离开关
+    客户端标签页:CreateToggle({
+        Name = "显示玩家移动距离（Show Distance Travelled）",
+        CurrentValue = false,
+        Flag = "ShowDistanceTravelled",
+        Callback = function(状态)
+            _G.显示玩家移动距离 = 状态
+        end,
+    })
+
+    -- 信号枪ESP开关
+    客户端标签页:CreateToggle({
+        Name = "信号枪ESP（Flare Gun ESP）",
+        CurrentValue = false,
+        Flag = "FlareGunESP",
+        Callback = function(状态)
+            _G.信号枪ESP启用 = 状态
+            if _G.信号枪ESP启用 == false then
+                -- 关闭时清除信号枪的ESP效果
+                if 获取克隆服务("Workspace"):FindFirstChild("FlareGunPickUp") then
+                    获取克隆服务("Workspace"):FindFirstChild("FlareGunPickUp"):SetAttribute("FlareGunESP", false)
+                end
+                for i, 子对象 in pairs(获取克隆服务("Workspace"):GetChildren()) do
+                    if 子对象.Name == "FlareGunPickUp" then
+                        if 子对象:FindFirstChild("FlareGunChams") then
+                            子对象.FlareGunChams:Remove()
+                        end
+                    end
+                end
+            end
+        end,
+    })
+
+    -- 补给箱ESP开关
+    客户端标签页:CreateToggle({
+        Name = "补给箱ESP（SupplyDrop ESP）",
+        CurrentValue = false,
+        Flag = "SupplyDropESP",
+        Callback = function(状态)
+            _G.补给箱ESP启用 = 状态
+            -- 关闭时初始化补给箱的ESP属性
+            for i, 子对象 in pairs(获取克隆服务("Workspace").Debris.SupplyCrates:GetChildren()) do
+                子对象:SetAttribute("SupplyDropESP", false)
+            end
+        end,
+    })
+
+    -- 碎片ESP开关
+    客户端标签页:CreateToggle({
+        Name = "碎片ESP（Scrap ESP）",
+        CurrentValue = false,
+        Flag = "ScrapESP",
+        Callback = function(状态)
+            _G.碎片ESP启用 = 状态
+            if _G.碎片ESP启用 == true then
+                repeat wait()
+                until _G.碎片ESP启用 == false
+                -- 关闭时清除碎片的ESP效果
+                for i, 子对象 in pairs(获取克隆服务("Workspace").Filter.ScrapSpawns:GetDescendants()) do
+                    pcall(function()
+                        if 子对象.Name == "ScrapChams" then
+                            子对象:Remove()
+                        end                        
+                        if 子对象:GetAttribute("ScrapESP") == true then
+                            子对象:SetAttribute("ScrapESP", false)
+                        end
+                    end)
+                end
+            elseif _G.碎片ESP启用 == false then
+                -- 关闭时清除碎片的ESP效果和属性
+                for i, 子对象 in pairs(获取克隆服务("Workspace").Filter.ScrapSpawns:GetDescendants()) do
+                    pcall(function()
+                        if 子对象.Name == "ScrapChams" then
+                            子对象:Remove()
+                            子对象:SetAttribute("ScrapESP", false)
+                        end
+                    end)
+                end
+                for i, 子对象 in pairs(获取克隆服务("Workspace").Filter.ScrapSpawns:GetDescendants()) do
+                    pcall(function()
+                        if 子对象:GetAttribute("ScrapESP") == true then
+                            子对象:SetAttribute("ScrapESP", false)
+                        end
+                    end)
+                end
+            end
+        end,
+    })
+
+    -- 地点ESP开关（发电站/安全屋/基地/商店）
+    客户端标签页:CreateToggle({
+        Name = "地点ESP（Location ESP）",
+        CurrentValue = false,
+        Flag = "LocationESP",
+        Callback = function(状态)
+            _G.地点ESP启用 = 状态
+            if _G.地点ESP启用 == false then
+                -- 关闭时初始化地点的ESP属性
+                for i, 地点信息 in pairs(地点列表) do
+                    if 地点信息.hasESP == true then
+                        地点信息.hasESP = false
+                    end
+                end
+            end
+        end,
+    })
+
+    -- ------------------------------ ESP效果实时渲染（心跳循环） ------------------------------
+    -- 信号枪ESP渲染
+    获取克隆服务("RunService").Heartbeat:Connect(function(时间增量)
+        if 允许运行服务 == true then
+            if _G.信号枪ESP启用 == true then
+                if 获取克隆服务("Workspace"):FindFirstChild("FlareGunPickUp") then
+                    if 获取克隆服务("Workspace"):FindFirstChild("FlareGunPickUp"):GetAttribute("FlareGunESP") == true then
+                    else
+                        -- 设置信号枪ESP属性，创建文字ESP
+                        获取克隆服务("Workspace"):FindFirstChild("FlareGunPickUp"):SetAttribute("FlareGunESP", true)
+                        local ESP文字 = Drawing.new("Text")
+                        ESP文字.Text = "信号枪"
+                        ESP文字.Color = Color3.fromRGB(0, 225, 255)
+                        ESP文字.Outline = false
+                        ESP文字.Center = true
+                        ESP文字.Font = 2
+                        ESP文字.Size = 12
+                        ESP文字.Visible = true
+
+                        -- 实时更新信号枪ESP位置
+                        获取克隆服务("RunService").Heartbeat:Connect(function()
+                            if 允许运行服务 == true then
+                                if _G.信号枪ESP启用 == true then
+                                    if 获取克隆服务("Workspace"):FindFirstChild("FlareGunPickUp") then
+                                        local 相机 = workspace.CurrentCamera
+                                        local 屏幕位置, 是否在屏幕内 = 相机:WorldToViewportPoint(获取克隆服务("Workspace").FlareGunPickUp.FlareGun.Position)
+                                        if 是否在屏幕内 then
+                                            ESP文字.Visible = true
+                                            ESP文字.Position = Vector2.new(屏幕位置.X, 屏幕位置.Y)
+                                        else
+                                            ESP文字.Visible = false
+                                        end
+                                    else
+                                        ESP文字.Visible = false
+                                    end
+                                else
+                                    ESP文字.Visible = false 
+                                end
+                            else
+                                ESP文字.Visible = false
+                            end
+                        end)
+                    end
+
+                    -- 为信号枪添加高亮效果
+                    for i, 子对象 in pairs(获取克隆服务("Workspace"):GetChildren()) do
+                        if 子对象.Name == "FlareGunPickUp" then
+                            if 子对象:FindFirstChild("FlareGunChams") then
+                                子对象.FlareGunChams.Enabled = true
+                            else
+                                local 信号枪高亮 = Instance.new("Highlight")
+                                信号枪高亮.Parent = 子对象
+                                信号枪高亮.Enabled = true
+                                信号枪高亮.Adornee = 子对象
+                                信号枪高亮.FillColor = Color3.fromRGB(255, 0, 0)
+                              -- 信号枪ESP渲染
+    获取克隆服务("RunService").Heartbeat:Connect(function(时间增量)
+        if 允许运行服务 == true then
+            if _G.信号枪ESP启用 == true then
+                if 获取克隆服务("Workspace"):FindFirstChild("FlareGunPickUp") then
+                    if 获取克隆服务("Workspace"):FindFirstChild("FlareGunPickUp"):GetAttribute("FlareGunESP") == true then
+                    else
+                        -- 设置信号枪ESP属性，创建文字ESP
+                        获取克隆服务("Workspace"):FindFirstChild("FlareGunPickUp"):SetAttribute("FlareGunESP", true)
+                        local ESP文字 = Drawing.new("Text")
+                        ESP文字.Text = "信号枪"
+                        ESP文字.Color = Color3.fromRGB(0, 225, 255)
+                        ESP文字.Outline = false
+                        ESP文字.Center = true
+                        ESP文字.Font = 2
+                        ESP文字.Size = 12
+                        ESP文字.Visible = true
+
+                        -- 实时更新信号枪ESP位置
+                        获取克隆服务("RunService").Heartbeat:Connect(function()
+                            if 允许运行服务 == true then
+                                if _G.信号枪ESP启用 == true then
+                                    if 获取克隆服务("Workspace"):FindFirstChild("FlareGunPickUp") then
+                                        local 相机 = workspace.CurrentCamera
+                                        local 屏幕位置, 是否在屏幕内 = 相机:WorldToViewportPoint(获取克隆服务("Workspace").FlareGunPickUp.FlareGun.Position)
+                                        if 是否在屏幕内 then
+                                            ESP文字.Visible = true
+                                            ESP文字.Position = Vector2.new(屏幕位置.X, 屏幕位置.Y)
+                                        else
+                                            ESP文字.Visible = false
+                                        end
+                                    else
+                                        ESP文字.Visible = false
+                                    end
+                                else
+                                    ESP文字.Visible = false 
+                                end
+                            else
+                                ESP文字.Visible = false
+                            end
+                        end)
+                    end
+
+                    -- 为信号枪添加高亮效果
+                    for i, 子对象 in pairs(获取克隆服务("Workspace"):GetChildren()) do
+                        if 子对象.Name == "FlareGunPickUp" then
+                            if 子对象:FindFirstChild("FlareGunChams") then
+                                子对象.FlareGunChams.Enabled = true
+                            else
+                                local 信号枪高亮 = Instance.new("Highlight")
+                                信号枪高亮.Parent = 子对象
+                                信号枪高亮.Enabled = true
+                                信号枪高亮.Adornee = 子对象
+                                信号枪高亮.FillColor = Color3.fromRGB(255, 0, 0)
+                                信号枪高亮.FillTransparency = 0.3
+                                信号枪高亮.OutlineTransparency = 0.8
+                                信号枪高亮.OutlineColor = Color3.fromRGB(170, 170, 170)
+                                信号枪高亮.Name = "FlareGunChams"
+                            end
+                        end
+                    end
+                end 
+            end
+        end
+    end)
+
+    -- Rake高亮ESP渲染
+    获取克隆服务("RunService").Heartbeat:Connect(function()
+        if 允许运行服务 == true then
+            if _G.Rake高亮ESP启用 == true then
+                -- 为Rake添加高亮效果
+                for i, 子对象 in pairs(获取克隆服务("Workspace"):GetChildren()) do
+                    if 子对象.Name == "Rake" then
+                        if 子对象:FindFirstChild("RakeChams") then
+                            子对象.RakeChams.Enabled = true
+                        else
+                            local Rake高亮 = Instance.new("Highlight")
+                            Rake高亮.Parent = 子对象
+                            Rake高亮.Adornee = 子对象
+                            Rake高亮.FillColor = Color3.fromRGB(170, 0, 0)
+                            Rake高亮.OutlineColor = Color3.fromRGB(255, 255, 255)
+                            Rake高亮.FillTransparency = 0.3
+                            Rake高亮.OutlineTransparency = 0.9
+                            Rake高亮.Name = "RakeChams"
+                        end
+                    end
+                end
+
+                -- 为Rake添加文字ESP（显示名称和血量）
+                for i, 子对象 in pairs(获取克隆服务("Workspace"):GetChildren()) do
+                    if 子对象.Name == "Rake" then
+                        if 子对象:GetAttribute("hasESP") == true then
+                        else
+                            子对象:SetAttribute("hasESP", true)
+                            local ESP文字 = Drawing.new("Text")
+                            ESP文字.Center = true
+                            ESP文字.Outline = false
+                            ESP文字.Text = 子对象.Name
+                            ESP文字.Font = 2
+                            ESP文字.Size = 12
+                            ESP文字.Color = Color3.fromRGB(255, 0, 0)
+                            ESP文字.Visible = true
+
+                            -- 实时更新Rake ESP位置和血量
+                            获取克隆服务("RunService").Heartbeat:Connect(function()
+                                pcall(function()
+                                    if 允许运行服务 == true then
+                                        if _G.Rake高亮ESP启用 == true then
+                                            if 获取克隆服务("Workspace"):FindFirstChild(子对象.Name) then
+                                                local 相机 = workspace.CurrentCamera
+                                                local 屏幕位置, 是否在屏幕内 = 相机:WorldToViewportPoint(子对象.Head.Position)
+                                                if 是否在屏幕内 then
+                                                    ESP文字.Text = tostring(子对象) .. ", 血量 : " .. tostring(子对象.Monster.Health)
+                                                    ESP文字.Visible = true
+                                                    ESP文字.Position = Vector2.new(屏幕位置.X, 屏幕位置.Y)
+                                                else
+                                                    ESP文字.Visible = false
+                                                end
+                                            else
+                                                ESP文字.Visible = false
+                                            end
+                                        else
+                                            ESP文字.Visible = false
+                                        end
+                                    else
+                                        ESP文字.Visible = false
+                                    end
+                                end)
+                            end)
+                        end
+                    end
+                end
+            end
+        end
+    end)
+
+    -- 玩家ESP渲染
+    获取克隆服务("RunService").Heartbeat:Connect(function()
+        if 允许运行服务 == true then
+            if _G.玩家ESP启用 == true then
+                -- 为其他玩家添加文字ESP（显示名称和移动距离）
+                for i, 玩家 in pairs(获取克隆服务("Players"):GetPlayers()) do
+                    if 玩家.Name ~= 获取克隆服务("Players").LocalPlayer.Name then
+                        if not 玩家.Character then
+                        else
+                            if 玩家.Character:FindFirstChild("Head") then
+                                if 玩家.Character:GetAttribute("PlayerESP") == true then
+                                else
+                                    local ESP文字 = Drawing.new("Text")
+                                    ESP文字.Center = true
+                                    ESP文字.Outline = false
+                                    ESP文字.Color = Color3.fromRGB(0, 255, 34)
+                                    ESP文字.Size = 12
+                                    ESP文字.Font = 2
+                                    ESP文字.Text = 玩家.Name .. " [移动距离 : " .. tostring(玩家.DistanceTravelled.Value) .. "]"
+                                    ESP文字.Visible = false
+                                    玩家.Character:SetAttribute("PlayerESP", true)
+
+                                    -- 实时更新玩家ESP位置和移动距离
+                                    获取克隆服务("RunService").Heartbeat:Connect(function()
+                                        pcall(function()
+                                            if 允许运行服务 == true then
+                                                if _G.玩家ESP启用 == true then
+                                                    if 获取克隆服务("Players"):FindFirstChild(tostring(玩家.Name)) then
+                                                        local 相机 = workspace.CurrentCamera
+                                                        local 屏幕位置, 是否在屏幕内 = 相机:WorldToViewportPoint(玩家.Character.Head.Position)
+                                                        if 是否在屏幕内 then
+                                                            ESP文字.Visible = true
+                                                            ESP文字.Position = Vector2.new(屏幕位置.X, 屏幕位置.Y)
+                                                            -- 控制是否显示移动距离
+                                                            if _G.显示玩家移动距离 == true then
+                                                                ESP文字.Text = 玩家.Name .. " [移动距离 : " .. tostring(玩家.DistanceTravelled.Value) .. "]"
+                                                            else
+                                                                ESP文字.Text = 玩家.Name
+                                                            end
+                                                        else
+                                                            ESP文字.Visible = false
+                                                        end
+                                                    else
+                                                        ESP文字.Visible = false
+                                                    end
+                                                else
+                                                    ESP文字.Visible = false 
+                                                end
+                                            else
+                                                ESP文字.Visible = false
+                                            end
+                                        end)
+                                    end)
+                                end
+                            end
+                        end
+                    end
+                end      
+
+                -- 为其他玩家添加高亮效果
+                for i, 玩家 in pairs(获取克隆服务("Players"):GetPlayers()) do
+                    if not 玩家.Character then 
+                    else
+                        if 玩家.Name ~= 获取克隆服务("Players").LocalPlayer.Name then
+                            if 玩家.Character:FindFirstChild("PlayerChams") then
+                                玩家.Character.PlayerChams.Enabled = true
+                            else
+                                local 玩家高亮 = Instance.new("Highlight")
+                                玩家高亮.Parent = 玩家.Character
+                                玩家高亮.Enabled = true
+                                玩家高亮.Adornee = 玩家.Character
+                                玩家高亮.FillColor = Color3.fromRGB(0, 11, 170)
+                                玩家高亮.FillTransparency = 0.3
+                                玩家高亮.OutlineTransparency = 0.8
+                                玩家高亮.OutlineColor = Color3.fromRGB(170, 170, 170)
+                                玩家高亮.Name = "PlayerChams"
+                            end
+                        end
+                    end
+                end
+            end
+        end
+    end)
+
+    -- 补给箱ESP渲染
+    获取克隆服务("RunService").Heartbeat:Connect(function(时间增量)
+        if 允许运行服务 == true then
+            if _G.补给箱ESP启用 == true then
+                for i, 子对象 in pairs(获取克隆服务("Workspace").Debris.SupplyCrates:GetChildren()) do
+                    if 子对象.Name == "Box" then
+                        if 子对象:GetAttribute("SupplyDropESP") == true then
+                        else
+                            -- 设置补给箱ESP属性，创建文字ESP
+                            子对象:SetAttribute("SupplyDropESP", true) 
+                            local ESP文字 = Drawing.new("Text")
+                            ESP文字.Color = Color3.fromRGB(251, 255, 0)
+                            ESP文字.Outline = false
+                            ESP文字.Size = 12
+                            ESP文字.Font = 2
+                            ESP文字.Text = "补给箱"
+                            ESP文字.Visible = true
+                            ESP文字.Center = true
+
+                            -- 实时更新补给箱ESP位置
+                            获取克隆服务("RunService").Heartbeat:Connect(function()
+                                pcall(function()
+                                    if 允许运行服务 == true then
+                                        if _G.补给箱ESP启用 == true then
+                                            if 获取克隆服务("Workspace").Debris.SupplyCrates:FindFirstChild(子对象.Name) then
+                                                local 相机 = workspace.CurrentCamera
+                                                local 屏幕位置, 是否在屏幕内 = 相机:WorldToViewportPoint(子对象.HitBox.Position)
+                                                if 是否在屏幕内 then
+                                                    ESP文字.Visible = true
+                                                    ESP文字.Position = Vector2.new(屏幕位置.X, 屏幕位置.Y)
+                                                else
+                                                    ESP文字.Visible = false
+                                                end
+                                            else
+                                                ESP文字.Visible = false
+                                            end
+                                        else
+                                            ESP文字.Visible = false
+                                        end
+                                    else
+                                        ESP文字.Visible = false
+                                    end
+                                end)
+                            end)
+                        end
+                    end
+                end
+            end
+        end
+    end)
+
+    -- 地点列表（发电站/安全屋/基地/商店）
+    local 地点列表 = {
+        ["发电站（Power_Station）"] = {
+            ["位置"] = Vector3.new(-281.6848449707031, 21.50823974609375, -212.7472686767578),
+            ["hasESP"] = false,
+        },
+        ["安全屋（Safe_House）"] = {
+            ["位置"] = Vector3.new(-363.491, 16.8744, 70.3037),
+            ["hasESP"] = false,
+        },
+        ["基地营地（Base_Camp）"] = {
+            ["位置"] = Vector3.new(-70.7132568359375, 17.61418914794922, 209.00674438476562),
+            ["hasESP"] = false,
+        },
+        ["商店（Shop）"] = {
+            ["位置"] = Vector3.new(-25.1567, 17.2076, -258.362),
+            ["hasESP"] = false
+        }
+    }
+
+    -- 地点ESP渲染
+    获取克隆服务("RunService").Heartbeat:Connect(function(时间增量)
+        if 允许运行服务 == true then
+            if _G.地点ESP启用 == true then
+                for 地点名称, 地点信息 in pairs(地点列表) do
+                    if 地点信息.hasESP == true then
+                    else
+                        -- 设置地点ESP属性，创建文字ESP
+                        地点信息.hasESP = true
+                        local ESP文字 = Drawing.new("Text")
+                        ESP文字.Size = 12
+                        ESP文字.Color = Color3.fromRGB(255, 136, 0)
+                        ESP文字.Font = 2
+                        ESP文字.Text = tostring(地点名称)
+                        ESP文字.Visible = true
+                        ESP文字.Center = true
+                        ESP文字.Outline = false
+
+                        -- 实时更新地点ESP位置
+                        获取克隆服务("RunService").Heartbeat:Connect(function()
+                            if 允许运行服务 == true then
+                                if _G.地点ESP启用 == true then
+                                    local 相机 = workspace.CurrentCamera
+                                    local 屏幕位置, 是否在屏幕内 = 相机:WorldToViewportPoint(地点信息.Position)
+                                    if 是否在屏幕内 then
+                                        ESP文字.Visible = true
+                                        ESP文字.Text = "[地点] " .. tostring(地点名称)
+                                        ESP文字.Position = Vector2.new(屏幕位置.X, 屏幕位置.Y)
+                                    else
+                                        ESP文字.Visible = false
+                                    end
+                                else
+                                    ESP文字.Visible = false
+                                end
+                            else
+                                ESP文字.Visible = false
+                            end
+                        end)
+                    end
+                end 
+            end
+        end
+    end)
+
+    -- 碎片ESP渲染
+    获取克隆服务("RunService").Heartbeat:Connect(function()
+        if 允许运行服务 == true then
+            if _G.碎片ESP启用 == true then
+                -- 为碎片添加文字ESP（显示分数和等级）
+                for i, 子对象 in pairs(获取克隆服务("Workspace").Filter.ScrapSpawns:GetDescendants()) do
+                    if 子对象.Name == "Scrap" then
+                        if 子对象:GetAttribute("ScrapESP") == true then
+                        else
+                            子对象:SetAttribute("ScrapESP", true)
+                            local 碎片ESP文字 = Drawing.new("Text")
+                            碎片ESP文字.Center = true
+                            碎片ESP文字.Outline = false
+                            碎片ESP文字.Color = Color3.fromRGB(77, 35, 1)
+                            碎片ESP文字.Size = 12
+                            碎片ESP文字.Font = 2
+                            碎片ESP文字.Text = "碎片" .. ", 分数 " .. tostring(子对象.Parent.PointsVal.Value) .. ", 等级 " .. tostring(子对象.Parent.LevelVal.Value)
+                            碎片ESP文字.Visible = false
+
+                            -- 实时更新碎片ESP位置
+                            获取克隆服务("RunService").Heartbeat:Connect(function()
+                                if 允许运行服务 == true then
+                                    if 子对象.Parent == nil then
+                                        碎片ESP文字.Visible = false
+                                    else
+                                        local 相机 = workspace.CurrentCamera
+                                        local 屏幕位置, 是否在屏幕内 = 相机:WorldToViewportPoint(子对象.Position)
+                                        if 是否在屏幕内 then
+                                            if _G.碎片ESP启用 == true then
+                                                碎片ESP文字.Visible = true
+                                                碎片ESP文字.Position = Vector2.new(屏幕位置.X, 屏幕位置.Y)
+                                            else
+                                                碎片ESP文字.Visible = false
+                                            end
+                                        else
+                                            碎片ESP文字.Visible = false
+                                        end
+                                    end
+                                else
+                                    碎片ESP文字.Visible = false
+                                end
+                            end)
+                        end
+                    end
+                end
+
+                -- 为碎片添加高亮效果
+                for i, 子对象 in pairs(获取克隆服务("Workspace").Filter.ScrapSpawns:GetDescendants()) do
+                    if 子对象.Name == "Scrap" then
+                        if 子对象:FindFirstChild("ScrapChams") then
+                            子对象.ScrapChams.Enabled = true
+                        else
+                            local 碎片高亮 = Instance.new("Highlight")
+                            碎片高亮.Parent = 子对象
+                            碎片高亮.Adornee = 子对象
+                            碎片高亮.FillColor = Color3.fromRGB(77, 35, 1)
+                            碎片高亮.FillTransparency = 0
+                            碎片高亮.OutlineTransparency = 0
+                            碎片高亮.OutlineColor = Color3.fromRGB(170, 170, 170)
+                            碎片高亮.Name = "ScrapChams"
+                        end
+                    end
+                end
+            end
+        end
+    end)
+
+    -- ------------------------------ 核心功能Hook与实时生效 ------------------------------
+    -- 无坠落伤害Hook（拦截坠落伤害事件）
+    local 元表 = getrawmetatable(game)
+    local 原调用函数 = 元表.__namecall
+    setreadonly(元表, false)
+    元表.__namecall = function(自身, ...)
+        if _G.无坠落伤害启用 == true then
+            local 参数列表 = {...}
+            local 调用方法 = getnamecallmethod()
+            if tostring(自身) == "FD_Event" then
+                参数列表[1] = 0  -- 伤害值设为0
+                参数列表[2] = 0  -- 其他参数设为0
+                return 自身.FireServer(自身, unpack(参数列表))
+            end 
+        end
+        return 原调用函数(自身, ...)
+    end
+
+    -- 自定义视野实时生效
+    获取克隆服务("RunService").RenderStepped:Connect(function()
+        if 允许运行服务 then
+            if _G.启用自定义视野 == true then
+                local 目标视野 = _G.目标视野范围
+                local 视野缓动 = 获取克隆服务("TweenService"):Create(workspace.CurrentCamera, TweenInfo.new(0, Enum.EasingStyle.Linear), {FieldOfView = tonumber(目标视野)})
+                视野缓动:Play()
+            end
+        end
+    end)
+
+    -- 自定义移动速度实时生效
+    获取克隆服务("RunService").RenderStepped:Connect(function()
+        if 允许运行服务 then
+            local 目标速度 = _G.目标移动速度
+            if _G.启用自定义速度 == true and 获取人形对象() then
+                获取人形对象().WalkSpeed = tonumber(目标速度)
+            end
+        end
+    end)
+
+    -- ------------------------------ 设置标签页功能 ------------------------------
+    -- 卸载GUI（清除所有资源）
+    function 卸载界面()
+        允许运行服务 = false
+        自由视角部件:Remove()
+        -- 清除碎片ESP属性
+        for i, 子对象 in pairs(获取克隆服务("Workspace").Filter.ScrapSpawns:GetDescendants()) do
+            pcall(function()
+                if 子对象:GetAttribute("ScrapESP") == true then
+                    子对象:SetAttribute("ScrapESP", false)
+                end
+            end)
+        end
+        隐藏部件:Remove()
+        getgenv().TheRakeScript = false
+        Rayfield:Destroy()
+    end
+
+    -- 添加状态标签（Rake目标/昼夜倒计时）
+    local Rake目标标签 = 功能标签页:CreateLabel("Rake的目标 : ")
+    local 昼夜倒计时标签 = 功能标签页:CreateLabel("距离白天还有 : ")
+
+    -- 实时更新昼夜倒计时标签
+    获取克隆服务("RunService").Heartbeat:Connect(function()
+        if 允许运行服务 == true then
+            if 获取克隆服务("ReplicatedStorage").Night.Value == true then
+                昼夜倒计时标签:Set("距离白天还有 : " .. 获取克隆服务("ReplicatedStorage").Timer.Value)
+            end
+            if 获取克隆服务("ReplicatedStorage").Night.Value == false then
+                昼夜倒计时标签:Set("距离夜晚还有 : " .. 获取克隆服务("ReplicatedStorage").Timer.Value)
+            end
+        end
+    end)
+
+    -- 实时更新Rake目标标签
+    获取克隆服务("RunService").Heartbeat:Connect(function()
+        if 允许运行服务 == true then
+            pcall(function()
+                if 获取克隆服务("Workspace"):FindFirstChild("Rake") then
+                    if 获取克隆服务("Workspace").Rake.TargetVal.Value == nil then
+                    else
+                        pcall(function()
+                            Rake目标标签:Set("Rake的目标 : " .. tostring(获取克隆服务("Workspace").Rake.TargetVal.Value.Parent))
+                        end)
+                    end
+                end
+            end)
+        end
+    end)
+
+    -- 血色时刻（Blood Hour）警报
+    获取克隆服务("RunService").Heartbeat:Connect(function()
+        if 允许运行服务 == true then
+            if 获取克隆服务("ReplicatedStorage").InitiateBloodHour.Value == true then
+                Rayfield:Notify({
+                    Title = "警报",
+                    Content = "警告！血色时刻即将到来！",
+                    Duration = 5,
+                    Image = 4483362458,
+                })
+                获取克隆服务("ReplicatedStorage").InitiateBloodHour.Value = false
+            end
+        end
+    end)
+
+    -- 卸载界面按钮
+    设置标签页:CreateButton({
+        Name = "卸载界面（Unload Gui）",
+        Callback = function()
+            卸载界面()
+        end,
+    })
+
+    -- 加载保存的配置
+    Rayfield:LoadConfiguration()
+end
